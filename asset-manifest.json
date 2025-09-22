@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/filter-app/static/js/main.df834762.js",
+    "main.js": "/filter-app/static/js/main.6d764a6c.js",
     "index.html": "/filter-app/index.html",
-    "main.df834762.js.map": "/filter-app/static/js/main.df834762.js.map"
+    "main.6d764a6c.js.map": "/filter-app/static/js/main.6d764a6c.js.map"
   },
   "entrypoints": [
-    "static/js/main.df834762.js"
+    "static/js/main.6d764a6c.js"
   ]
 }
