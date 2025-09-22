@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef } from 'react';
 
 function App() {
   const [filters, setFilters] = useState({ department: [], category: [], supplier: [], branch: [] });
-  const [rawData, setRawData] = useState(null);
   const [selected, setSelected] = useState({ department: [], category: [], supplier: [], branch: [] });
   const [pending, setPending] = useState({ department: [], category: [], supplier: [], branch: [] });
   const [results, setResults] = useState([]);
@@ -14,36 +13,9 @@ function App() {
   const wrapperRef = useRef();
 
   useEffect(() => {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-      fetch('http://localhost:4000/api/filters')
-        .then(res => res.json())
-        .then(setFilters)
-        .catch(() => setFilters({ department: [], category: [], supplier: [], branch: [] }));
-    } else {
-      // Deployed: load the pre-generated minimal JSON from the repo raw URL
-      const rawUrl = 'https://raw.githubusercontent.com/Rudhr07/filter-app/master/backend/data-minimal.json';
-      fetch(rawUrl)
-        .then(res => res.json())
-        .then(data => {
-          setRawData(data);
-          // build filter lists
-          const f = { department: new Set(), category: new Set(), supplier: new Set(), branch: new Set() };
-          data.forEach(r => {
-            if (r.department) f.department.add(r.department);
-            if (r.category) f.category.add(r.category);
-            if (r.supplier) f.supplier.add(r.supplier);
-            if (r.branch) f.branch.add(r.branch);
-          });
-          setFilters({
-            department: Array.from(f.department).sort(),
-            category: Array.from(f.category).sort(),
-            supplier: Array.from(f.supplier).sort(),
-            branch: Array.from(f.branch).sort(),
-          });
-        })
-        .catch(() => setFilters({ department: [], category: [], supplier: [], branch: [] }));
-    }
+    fetch('http://localhost:4000/api/filters')
+      .then(res => res.json())
+      .then(setFilters);
   }, []);
 
   // Load first page of results immediately on app open
@@ -59,77 +31,23 @@ function App() {
   }
 
   function fetchResults(newPage = 1, newFilters = pending) {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-      const params = new URLSearchParams();
-      Object.entries(newFilters).forEach(([k, v]) => {
-        if (Array.isArray(v)) {
-          v.forEach(val => params.append(k, val));
-        } else if (v) {
-          params.append(k, v);
-        }
+    const params = new URLSearchParams();
+    Object.entries(newFilters).forEach(([k, v]) => {
+      if (Array.isArray(v)) {
+        v.forEach(val => params.append(k, val));
+      } else if (v) {
+        params.append(k, v);
+      }
+    });
+    params.append('page', newPage);
+    params.append('pageSize', pageSize);
+    fetch('http://localhost:4000/api/results?' + params.toString())
+      .then(res => res.json())
+      .then(data => {
+        setResults(data.results);
+        setTotal(data.total);
+        setPage(data.page);
       });
-      params.append('page', newPage);
-      params.append('pageSize', pageSize);
-      fetch('http://localhost:4000/api/results?' + params.toString())
-        .then(res => res.json())
-        .then(data => {
-          setResults(data.results);
-          setTotal(data.total);
-          setPage(data.page);
-        });
-      return;
-    }
-
-    // Deployed: compute results client-side from rawData
-    if (!rawData) {
-      setResults([]);
-      setTotal(0);
-      setPage(1);
-      return;
-    }
-
-    // filter rows
-    let filtered = rawData.filter(row => {
-      // departments
-      if (Array.isArray(newFilters.department) && newFilters.department.length) {
-        if (!newFilters.department.includes(row.department)) return false;
-      }
-      if (Array.isArray(newFilters.category) && newFilters.category.length) {
-        if (!newFilters.category.includes(row.category)) return false;
-      }
-      if (Array.isArray(newFilters.supplier) && newFilters.supplier.length) {
-        if (!newFilters.supplier.includes(row.supplier)) return false;
-      }
-      if (Array.isArray(newFilters.branch) && newFilters.branch.length) {
-        if (!newFilters.branch.includes(row.branch)) return false;
-      }
-      return true;
-    });
-
-    // group by dept|cat|supplier|branch and sum numeric fields
-    const groupMap = new Map();
-    filtered.forEach(r => {
-      const key = `${r.department}||${r.category}||${r.supplier}||${r.branch}`;
-      const netlsqty = Number(r.netlsqty) || 0;
-      const netamount = Number(r.netamount) || 0;
-      const netslscost = Number(r.netslscost) || 0;
-      if (!groupMap.has(key)) {
-        groupMap.set(key, { department: r.department, category: r.category, supplier: r.supplier, branch: r.branch, netlsqty, netamount, netslscost });
-      } else {
-        const cur = groupMap.get(key);
-        cur.netlsqty += netlsqty;
-        cur.netamount += netamount;
-        cur.netslscost += netslscost;
-      }
-    });
-    const grouped = Array.from(groupMap.values());
-    const totalCount = grouped.length;
-    const start = (newPage - 1) * pageSize;
-    const pageData = grouped.slice(start, start + pageSize);
-    setResults(pageData);
-    setTotal(totalCount);
-    setPage(newPage);
   }
 
   function handleSubmit(e) {
