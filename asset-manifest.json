@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/filter-app/static/js/main.df834762.js",
+    "index.html": "/filter-app/index.html",
+    "main.df834762.js.map": "/filter-app/static/js/main.df834762.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.df834762.js"
+  ]
+}
